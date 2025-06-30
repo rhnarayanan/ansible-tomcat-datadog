@@ -1,0 +1,78 @@
+Goal
+Use Ansible + Tomcat + Datadog in a CI/CD pipeline to:
+
+Deploy Tomcat
+
+Install Datadog Agent & APM
+
+Monitor Tomcat metrics
+
+Upload a dashboard to Datadog
+
+Step-by-Step Summary
+🔹 Step 1: Prepare Your Infrastructure
+Launch an Ubuntu EC2 instance (or any Linux server).
+
+Ensure it allows SSH (port 22) and Tomcat (8080) + JMX (9010).
+
+Save the .pem key file securely.
+
+🔹 Step 2: Create a GitHub Repo
+Create a new repo like tomcat-monitoring-ci.
+
+Add the following structure:
+
+bash
+Copy
+Edit
+.github/workflows/deploy.yml          # GitHub Actions CI
+site.yml                              # Ansible playbook
+inventory.ini                         # Your target host
+dashboards/tomcat-overview-dashboard.json
+🔹 Step 3: Fill the Files
+site.yml: Automates installing Java, Tomcat, Datadog Agent, and Java Agent.
+
+inventory.ini: Defines your EC2 server's IP and SSH details.
+
+deploy.yml: A GitHub Actions workflow to run Ansible and upload dashboard.
+
+tomcat-overview-dashboard.json: A visual dashboard for Tomcat metrics.
+
+🔹 Step 4: Add GitHub Secrets
+Go to your repo → Settings > Secrets and Variables > Actions
+
+Add:
+
+DATADOG_API_KEY
+
+DATADOG_APP_KEY
+
+(You can generate them from Datadog API settings)
+
+🔹 Step 5: Push Code and Trigger CI
+Commit and push your code to GitHub.
+
+The deploy.yml workflow will:
+
+SSH into your EC2 instance
+
+Run Ansible to install & configure everything
+
+Upload the Tomcat dashboard to your Datadog account
+
+🔹 Step 6: Monitor in Datadog
+Go to Datadog Dashboards
+
+Your Tomcat Overview Dashboard will appear
+
+View:
+
+Thread count
+
+Request rates
+
+JVM heap usage
+
+GC time
+
+Uptime, errors, latency
