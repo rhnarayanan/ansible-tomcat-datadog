@@ -1,1 +1,115 @@
 # site.yml - Ansible playbook content
+---
+- name: Setup Tomcat and Datadog monitoring on EC2
+  hosts: tomcat_servers
+  become: yes
+  vars:
+    datadog_api_key: "{{ lookup('env', 'DATADOG_API_KEY') }}"
+    dd_java_agent_path: "/opt/dd-java-agent.jar"
+    tomcat_user: tomcat
+    tomcat_group: tomcat
+    tomcat_home: /opt/tomcat
+  roles:
+    - datadog.datadog
+  tasks:
+    - name: Install Java (OpenJDK)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Download Tomcat
+      get_url:
+        url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.83/bin/apache-tomcat-9.0.83.tar.gz
+        dest: /tmp/tomcat.tar.gz
+
+    - name: Extract Tomcat
+      unarchive:
+        src: /tmp/tomcat.tar.gz
+        dest: /opt/
+        remote_src: yes
+
+    - name: Symlink Tomcat
+      file:
+        src: /opt/apache-tomcat-9.0.83
+        dest: /opt/tomcat
+        state: link
+
+    - name: Add Datadog Java Agent
+      get_url:
+        url: https://dtdg.co/latest-java-tracer
+        dest: "{{ dd_java_agent_path }}"
+        mode: '0644'
+
+    - name: Configure setenv.sh for Java Agent
+      copy:
+        dest: "{{ tomcat_home }}/bin/setenv.sh"
+        content: |
+          #!/bin/bash
+          export CATALINA_OPTS="-javaagent:{{ dd_java_agent_path }} \
+          -Ddd.service=tomcat-app \
+          -Ddd.env=dev \
+          -Ddd.version=1.0.0 \
+          -Ddd.logs.injection=true \
+          -Ddd.profiling.enabled=true \
+          -Ddd.trace.debug=true"
+        mode: '0755'
+
+    - name: Configure Tomcat systemd service
+      copy:
+        dest: /etc/systemd/system/tomcat.service
+        content: |
+          [Unit]
+          Description=Apache Tomcat Web Application Container
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ tomcat_user }}
+          Group={{ tomcat_group }}
+
+          Environment=JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+          Environment=CATALINA_PID={{ tomcat_home }}/temp/tomcat.pid
+          Environment=CATALINA_HOME={{ tomcat_home }}
+          Environment=CATALINA_BASE={{ tomcat_home }}
+          Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+
+          ExecStart={{ tomcat_home }}/bin/startup.sh
+          ExecStop={{ tomcat_home }}/bin/shutdown.sh
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable JMX Remote for Tomcat
+      lineinfile:
+        path: "{{ tomcat_home }}/bin/catalina.sh"
+        insertafter: '^# OS specific support.\\s*$'
+        line: |
+          JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote \
+          -Dcom.sun.management.jmxremote.port=9010 \
+          -Dcom.sun.management.jmxremote.authenticate=false \
+          -Dcom.sun.management.jmxremote.ssl=false"
+
+    - name: Configure Datadog Tomcat Integration
+      copy:
+        dest: /etc/datadog-agent/conf.d/tomcat.d/conf.yaml
+        content: |
+          init_config:
+          instances:
+            - host: localhost
+              port: 9010
+              name: tomcat-instance
+
+    - name: Reload systemd and start Tomcat
+      shell: |
+        systemctl daemon-reexec
+        systemctl daemon-reload
+        systemctl enable tomcat
+        systemctl restart tomcat
+      args:
+        executable: /bin/bash
+
+    - name: Restart Datadog Agent
+      service:
+        name: datadog-agent
+        state: restarted
+
