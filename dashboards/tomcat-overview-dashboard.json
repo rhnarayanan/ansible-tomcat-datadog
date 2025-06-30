@@ -1,0 +1,69 @@
+{
+  "title": "Tomcat Overview Dashboard",
+  "description": "Monitoring dashboard for Tomcat using Datadog Agent with JMX integration",
+  "widgets": [
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.threads.busy{*}", "display_type": "line", "name": "Busy Threads"}],
+        "title": "Busy Threads"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.threads.current{*}", "display_type": "line", "name": "Current Threads"}],
+        "title": "Current Thread Count"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.request.count{*}", "display_type": "line", "name": "Request Count"}],
+        "title": "Tomcat Request Count"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.error.count{*}", "display_type": "line", "name": "Error Count"}],
+        "title": "Tomcat Error Count"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:jvm.gc.time{*}", "display_type": "line", "name": "GC Time"}],
+        "title": "JVM Garbage Collection Time"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:jvm.heap_memory{*}", "display_type": "line", "name": "Heap Memory"}],
+        "title": "Heap Memory Usage"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.uptime{*}", "display_type": "line", "name": "Tomcat Uptime"}],
+        "title": "Tomcat Uptime"
+      }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "requests": [{"q": "avg:tomcat.request.time{*}", "display_type": "line", "name": "Request Time"}],
+        "title": "Tomcat Request Latency"
+      }
+    }
+  ],
+  "layout_type": "ordered",
+  "is_read_only": false,
+  "notify_list": [],
+  "template_variables": [],
+  "tags": ["tomcat", "jmx", "datadog"],
+  "reflow_type": "fixed",
+  "id": "tomcat-overview"
+}

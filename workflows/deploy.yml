@@ -1,0 +1,37 @@
+name: Deploy Tomcat & Upload Datadog Dashboard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-and-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python & Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip ansible
+          pip install datadog-cli
+          ansible-galaxy collection install datadog.datadog
+
+      - name: Deploy with Ansible
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+        run: |
+          ansible-playbook site.yml -i inventory.ini
+
+      - name: Install Datadog CI Tool
+        run: |
+          npm install -g @datadog/datadog-ci
+
+      - name: Upload Tomcat Dashboard to Datadog
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+        run: |
+          datadog-ci dashboards create dashboards/tomcat-overview-dashboard.json
